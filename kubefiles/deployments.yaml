@@ -82,8 +82,8 @@ spec:
           secret:
             secretName: gcs-mounts
             defaultMode: 0744
-        securityContext:
-          privileged: true
-          capabilities:
-            add:
-              - SYS_ADMIN
+            #securityContext:
+            #  privileged: true
+            #  capabilities:
+            #    add:
+            #      - SYS_ADMIN
