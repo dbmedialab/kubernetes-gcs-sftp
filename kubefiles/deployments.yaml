@@ -64,10 +64,16 @@ spec:
               name: users
             - mountPath: /credentials
               name: sftp-gcloud-key
+            - mountPath: /client-credentials
+              name: client-public-keys
             - mountPath: /etc/sftp.d/
               name: gcs-mounts
             - mountPath: /etc/ssh
               name: hostkeys
+            - mountPath: /home/orjan/.ssh/
+              name: public-key-orjan
+            - mountPath: /home/vev/.ssh/
+              name: public-key-vev
       volumes:
         - name: users
           secret:
@@ -75,6 +81,12 @@ spec:
         - name: hostkeys
           secret:
             secretName: hostkeys
+        - name: public-key-orjan
+          secret:
+            secretName: public-key-orjan
+        - name: public-key-vev
+          secret:
+            secretName: public-key-vev
         - name: sftp-gcloud-key
           secret:
             secretName: sftp-gcloud-key
