@@ -64,8 +64,6 @@ spec:
               name: users
             - mountPath: /credentials
               name: sftp-gcloud-key
-            - mountPath: /client-credentials
-              name: client-public-keys
             - mountPath: /etc/sftp.d/
               name: gcs-mounts
             - mountPath: /etc/ssh
