@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{env "REPONAME"}}
+  namespace: {{env "REPONAME"}}
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 3
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ env "REPONAME" }}
+  replicas: {{ env "REPLICAS" }}
+  revisionHistoryLimit: 2
+  template:
+    metadata:
+      labels:
+        app: {{ env "REPONAME" }}
+        team: {{ if .Env.TEAM }}{{ env "TEAM" }}{{ else }}undefined{{ end }}
+        slackchannel: {{ if .Env.SLACKCHANNEL }}{{ env "SLACKCHANNEL" }}{{ else }}undefined{{ end }}
+      annotations:
+        prometheus.io/scrape: "true"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      # Affinity to make sure that multiple pods does not run on the same node
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{env "REPONAME"}}
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      containers:
+        - name: app
+          image: {{env "IMAGE"}}
+          # Resource limits for each pod, cpu: 1.0 == 1 CPU core. Over-use causes CPU-usage to get throttled
+          # Memory-usage over-usage causes the pod to get killed, and a new one created.
+          # Try to focus on keeping limits and requests the same, so that the node can reserve the resources
+          # needed when it is starting up the pod.
+          resources:
+            limits:
+              cpu: "0.1"
+              memory: 50Mi
+            requests:
+              cpu: "0.1"
+              memory: 50Mi
+          env:
+            - name: JAEGER_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          ports:
+            - containerPort: 22
+              name: ssh
+          volumeMounts:
+            - mountPath: /etc/sftp
+              name: users
+            - mountPath: /credentials
+              name: sftp-gcloud-key
+            - mountPath: /etc/sftp.d/
+              name: gcs-mounts
+            - mountPath: /etc/ssh
+              name: hostkeys
+      volumes:
+        - name: users
+          secret:
+            secretName: users
+        - name: hostkeys
+          secret:
+            secretName: hostkeys
+        - name: sftp-gcloud-key
+          secret:
+            secretName: sftp-gcloud-key
+        - name: gcs-mounts
+          secret:
+            secretName: gcs-mounts
+            defaultMode: 0744
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - SYS_ADMIN
